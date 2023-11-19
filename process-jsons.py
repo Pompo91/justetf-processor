@@ -3,7 +3,13 @@ import argparse
 import datetime
 import os
 
-class series:
+import seaborn as sns
+import matplotlib.pyplot as plt
+import pandas as pd
+import matplotlib.dates as mdates
+import numpy as np
+
+class Series:
     _name: str
     _data: dict
 
@@ -75,7 +81,7 @@ if __name__ == "__main__":
         series_list = list()
         for file in os.listdir(args.input_json_dir):
             if file.endswith(".json"):
-                series_list.append(series(os.path.join(args.input_json_dir, file)))
+                series_list.append(Series(os.path.join(args.input_json_dir, file)))
                 print("Series \"{}\" added".format(series_list[-1].get_name()))
         
         if len(series_list) < 2:
@@ -90,9 +96,45 @@ if __name__ == "__main__":
         
         print("Min date: {}, max date: {}, days: {}".format(min_datetime, max_datetime, int((max_datetime - min_datetime).days) + 1))
 
+        subseries_list = list()
         for s in series_list:
-            subseries = s.get_data_in_date_window(min_datetime, max_datetime)
-            print("Length of {} subseries: {}".format(s.get_name(), len(subseries)))
+            subseries_list.append(s.get_data_in_date_window(min_datetime, max_datetime))
+        
+        ######################################################################################
+        # Plotting the data with a lot of help from ChatGPT...
+        ######################################################################################
+
+        # Transpose each series inside the series_list
+        transposed_series = []
+        for series in zip(*subseries_list):
+            transposed_series.append(list(series))
+
+        # Create a DataFrame from the transposed series
+        data = pd.DataFrame(transposed_series, columns=[f'Series{i+1}' for i in range(len(subseries_list))])
+
+        # Add X values to the DataFrame
+        data['X'] = np.arange(1, len(subseries_list[0]) + 1)
+
+        # Set up Seaborn style
+        sns.set(style="whitegrid")
+
+        # Plot each series dynamically
+        for i in range(len(subseries_list)):
+            sns.lineplot(x='X', y=f'Series{i+1}', data=data, label=f'Series {i+1}', markers = False)
+
+        # Add legend
+        plt.legend()
+
+        # Set plot title and labels
+        plt.title('Dynamic Series Scatter Plot')
+        plt.xlabel('X-axis')
+        plt.ylabel('Y-axis')
+
+        # Switch to a backend that supports interactive plotting
+        plt.switch_backend('TkAgg')
+
+        # Show the plot
+        plt.show()
 
     except Exception as exc:
         print("EXCEPTION OCCURRED: {}".format(exc))
