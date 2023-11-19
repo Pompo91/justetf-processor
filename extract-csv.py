@@ -17,20 +17,34 @@ class series:
     
     def __validate(self) -> bool:
         # validate that the series has exactly one data point per day
-        format_string = "%Y-%m-%d"
-        first_date = self._data[0]["date"]
-        last_date = self._data[-1]["date"]
-        total_days = datetime.datetime.strptime(last_date, format_string) - datetime.datetime.strptime(first_date, format_string)
+        total_days = self.get_last_datetime() - self.get_first_datetime()
         data_points = len(self._data)
 
         if (total_days.days + 1) != data_points:
             raise Exception("Data series validation failed: {} days, {} data points.".format(total_days.days, data_points))
+
+    def __get_format_string(self) -> str:
+        return "%Y-%m-%d"
+
+    def get_first_datetime(self) -> datetime.datetime:
+        return datetime.datetime.strptime(self._data[0]["date"], self.__get_format_string())
+
+    def get_last_datetime(self) -> datetime.datetime:
+        return datetime.datetime.strptime(self._data[-1]["date"], self.__get_format_string())
+
+    def get_first_data(self) -> float:
+        return float(self.data[0]["value"]["raw"])
+    
+    def get_last_data(self) -> float:
+        return float(self.data[-1]["value"]["raw"])
 
     def write_csv(self, csv_path: str):
         with open(csv_path, "w") as f:
             f.write("date,value,\n")
             for point in self._data:
                 f.write("{},{},\n".format(point["date"], point["value"]["raw"]))
+        
+    
 
 
 if __name__ == "__main__":
