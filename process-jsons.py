@@ -6,7 +6,6 @@ import os
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
-import matplotlib.dates as mdates
 import numpy as np
 
 class Series:
@@ -66,6 +65,32 @@ class Series:
 
         return [p["value"]["raw"] for p in self._data if (self.__get_datetime(p["date"]) >= start_date) and (self.__get_datetime(p["date"]) <= stop_date)]
 
+def generate_graph_ticks(start_date: datetime.datetime, stop_date: datetime.datetime) -> [list, list]:
+    idx_list = list()
+    date_str_list = list()
+
+    year = start_date.year
+    month = start_date.month
+    while month % 3 != 0:
+        month += 1
+        if month > 12:
+            year += 1
+            month = 1
+
+    ts = datetime.datetime.strptime("1/{}/{}".format(month, year), "%d/%m/%Y")
+    while ts < stop_date:
+        idx_list.append(int((ts - start_date).days))
+        date_str_list.append("{}/{}".format(month, year % 100))
+
+        month = month + 3
+        if month > 12:
+            year += 1
+            month = 3
+        ts = datetime.datetime.strptime("1/{}/{}".format(month, year), "%d/%m/%Y")
+    
+    return [idx_list, date_str_list]
+        
+
         
 if __name__ == "__main__":
     arg_parser = arg_parser = argparse.ArgumentParser(description = "Process JSONSs downloaded from JustETF")
@@ -120,7 +145,7 @@ if __name__ == "__main__":
 
         # Plot each series dynamically
         for i in range(len(subseries_list)):
-            sns.lineplot(x='X', y=f'Series{i+1}', data=data, label=f'Series {i+1}', markers = False)
+            sns.lineplot(x='X', y=f'Series{i+1}', data=data, label=series_list[i].get_name(), markers = False)
 
         # Add legend
         plt.legend()
@@ -129,6 +154,9 @@ if __name__ == "__main__":
         plt.title('Dynamic Series Scatter Plot')
         plt.xlabel('X-axis')
         plt.ylabel('Y-axis')
+
+        idx_list, tick_list = generate_graph_ticks(min_datetime, max_datetime)
+        plt.xticks(idx_list, tick_list, rotation = 0)
 
         # Switch to a backend that supports interactive plotting
         plt.switch_backend('TkAgg')
