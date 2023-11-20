@@ -97,7 +97,7 @@ def generate_graph_ticks(start_date: datetime.datetime, stop_date: datetime.date
     
     return [idx_list, date_str_list]
         
-def plot_graphs(series_list: list, labels: list):
+def generate_graphs(series_list: list, labels: list):
     ######################################################################################
     # Plotting the data with a lot of help from ChatGPT...
     ######################################################################################
@@ -120,6 +120,8 @@ def plot_graphs(series_list: list, labels: list):
     for i in range(len(series_list)):
         sns.lineplot(x='X', y=f'Series{i+1}', data=data, label=labels[i], markers = False)
 
+    plt.figure()
+
     # Add legend
     plt.legend()
 
@@ -131,11 +133,11 @@ def plot_graphs(series_list: list, labels: list):
     idx_list, tick_list = generate_graph_ticks(min_datetime, max_datetime)
     plt.xticks(idx_list, tick_list, rotation = 0)
 
-    # Switch to a backend that supports interactive plotting
-    plt.switch_backend('TkAgg')
-
-    # Show the plot
-    plt.show()
+# TODO: are the return types correct?
+def get_linear_trend_coeffs(series: list) -> [float, float]:
+    dummy_time_values = np.arange(len(series))
+    # The "1" stands for "polynomial of 1st degree", i.e. linear
+    return np.polyfit(dummy_time_values, series, 1)
         
 if __name__ == "__main__":
     arg_parser = arg_parser = argparse.ArgumentParser(description = "Process JSONSs downloaded from JustETF")
@@ -167,11 +169,38 @@ if __name__ == "__main__":
         print("Min date: {}, max date: {}, days: {}".format(min_datetime, max_datetime, int((max_datetime - min_datetime).days) + 1))
 
         subseries_list = list()
+        coeffs_list = list()
+        max_slope = None
         for s in series_list:
-            subseries_list.append(s.get_data_in_date_window(min_datetime, max_datetime))
+            subseries = s.get_data_in_date_window(min_datetime, max_datetime)
+            slope, offset = get_linear_trend_coeffs(subseries)
+            if max_slope == None:
+                max_slope = slope
+            else:
+                max_slope = max(max_slope, slope)
+            
+            coeffs_list.append((slope, offset))
+            subseries_list.append(subseries)
         
-        plot_graphs(subseries_list, [s.get_name() for s in series_list])
+        # "scaled" here means that all the data series have been recalculated in a way that they all follow
+        # exactly the same linear trend.
+        scaled_series_list = list()
+        for i, s in enumerate(subseries_list):
+            scaled_slope = max_slope / coeffs_list[i][0]
+            offset = coeffs_list[i][1]
+            scaled_series_list.append([(p * scaled_slope) - offset for p in s])
+        
+        # Switch to a backend that supports interactive plotting
+        plt.switch_backend('TkAgg')
 
+        # TODO: we still see 3 graph windows (one is empty) - maybe re-work it in a way that each window is an "instance"?
+        generate_graphs(subseries_list, [s.get_name() for s in series_list])
+        generate_graphs(scaled_series_list, [s.get_name() for s in series_list])
+
+        plt.show()
+
+        input("Press Enter to terminate...")
+        
 
     except Exception as exc:
         print("EXCEPTION OCCURRED: {}".format(exc))
