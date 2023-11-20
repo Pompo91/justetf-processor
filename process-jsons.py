@@ -56,14 +56,21 @@ class Series:
                 f.write("{},{},\n".format(point["date"], point["value"]["raw"]))
     
     def get_data_in_date_window(self, start_date: datetime.datetime, stop_date: datetime.datetime) -> list:
-        # return a subset of data fitting into the defined time window
+        # Return a subset of data fitting into the defined time window, scaled to match the profits against
+        # the point at start_date.
         if (start_date < self.get_first_datetime()) or (stop_date > self.get_last_datetime()):
             raise Exception("Series {}: requested dates ({}, {}) out of bounds ({}, {})".format(self._name, start_date, stop_date, self.get_first_datetime(), self.get_last_datetime()))
 
         first_idx = int((start_date - self.get_first_datetime()).days)
-        last_idx = int((self.get_last_datetime() - stop_date).days)
+        last_idx = int((stop_date - self.get_first_datetime()).days)
 
-        return [p["value"]["raw"] for p in self._data if (self.__get_datetime(p["date"]) >= start_date) and (self.__get_datetime(p["date"]) <= stop_date)]
+        first_val = self._data[first_idx]["value"]["raw"]
+        # We cannot just shift the graph by an offset of first_val - we also need to re-scale it. For that, we temporarily
+        # move from percents to absolute numbers by mapping 0% profit ~ 100% of the initial value ~ abs. value 100.
+        # Based on those absolute values, we're able to calculate the new profit.
+        # Verified against the justETF "compare graph" - the values do match now.
+
+        return [((100 + p["value"]["raw"]) / (100 + first_val) - 1) * 100 for p in self._data[first_idx:last_idx + 1]]
 
 def generate_graph_ticks(start_date: datetime.datetime, stop_date: datetime.datetime) -> [list, list]:
     idx_list = list()
