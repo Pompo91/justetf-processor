@@ -76,7 +76,7 @@ def generate_graph_ticks(start_date: datetime.datetime, stop_date: datetime.date
 
     year = start_date.year
     month = start_date.month
-    while month % 3 != 0:
+    while (month - 1) % 3 != 0:
         month += 1
         if month > 12:
             year += 1
@@ -90,7 +90,7 @@ def generate_graph_ticks(start_date: datetime.datetime, stop_date: datetime.date
         month = month + 3
         if month > 12:
             year += 1
-            month = 3
+            month = month % 12
         ts = datetime.datetime.strptime("1/{}/{}".format(month, year), "%d/%m/%Y")
     
     return [idx_list, date_str_list]
