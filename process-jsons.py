@@ -3,10 +3,8 @@ import argparse
 import datetime
 import os
 
-import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
-import numpy as np
 
 class Series:
     _name: str
@@ -96,48 +94,21 @@ def generate_graph_ticks(start_date: datetime.datetime, stop_date: datetime.date
         ts = datetime.datetime.strptime("1/{}/{}".format(month, year), "%d/%m/%Y")
     
     return [idx_list, date_str_list]
-        
-def generate_graphs(series_list: list, labels: list):
-    ######################################################################################
-    # Plotting the data with a lot of help from ChatGPT...
-    ######################################################################################
 
-    # Transpose each series inside the series_list
-    transposed_series = []
-    for series in zip(*series_list):
-        transposed_series.append(list(series))
-
-    # Create a DataFrame from the transposed series
-    data = pd.DataFrame(transposed_series, columns=[f'Series{i+1}' for i in range(len(series_list))])
-
-    # Add X values to the DataFrame
-    data['X'] = np.arange(1, len(series_list[0]) + 1)
-
-    # Set up Seaborn style
-    sns.set(style="whitegrid")
-
-    # Plot each series dynamically
-    for i in range(len(series_list)):
-        sns.lineplot(x='X', y=f'Series{i+1}', data=data, label=labels[i], markers = False)
-
-    plt.figure()
-
-    # Add legend
-    plt.legend()
+def generate_graphs(data: pd.DataFrame):
+    # The pandas plot() function is a wrapper around the matplotlib plt.plot()
+    data.plot()
+    # to modify the plot, just call the method of plt
 
     # Set plot title and labels
-    plt.title('Dynamic Series Scatter Plot')
-    plt.xlabel('X-axis')
-    plt.ylabel('Y-axis')
+    plt.title('Performance comparison')
+    plt.xlabel('date')
+    plt.ylabel('performance [%]')
 
     idx_list, tick_list = generate_graph_ticks(min_datetime, max_datetime)
     plt.xticks(idx_list, tick_list, rotation = 0)
 
-# TODO: are the return types correct?
-def get_linear_trend_coeffs(series: list) -> [float, float]:
-    dummy_time_values = np.arange(len(series))
-    # The "1" stands for "polynomial of 1st degree", i.e. linear
-    return np.polyfit(dummy_time_values, series, 1)
+    plt.grid()
         
 if __name__ == "__main__":
     arg_parser = arg_parser = argparse.ArgumentParser(description = "Process JSONSs downloaded from JustETF")
@@ -169,33 +140,19 @@ if __name__ == "__main__":
         print("Min date: {}, max date: {}, days: {}".format(min_datetime, max_datetime, int((max_datetime - min_datetime).days) + 1))
 
         subseries_list = list()
-        coeffs_list = list()
-        max_slope = None
+        dataframe_input_dict = dict()
+
         for s in series_list:
             subseries = s.get_data_in_date_window(min_datetime, max_datetime)
-            slope, offset = get_linear_trend_coeffs(subseries)
-            if max_slope == None:
-                max_slope = slope
-            else:
-                max_slope = max(max_slope, slope)
-            
-            coeffs_list.append((slope, offset))
             subseries_list.append(subseries)
+            dataframe_input_dict[s.get_name()] = subseries
         
-        # "scaled" here means that all the data series have been recalculated in a way that they all follow
-        # exactly the same linear trend.
-        scaled_series_list = list()
-        for i, s in enumerate(subseries_list):
-            scaled_slope = max_slope / coeffs_list[i][0]
-            offset = coeffs_list[i][1]
-            scaled_series_list.append([(p * scaled_slope) - offset for p in s])
+        pd_data = pd.DataFrame(dataframe_input_dict)
         
         # Switch to a backend that supports interactive plotting
         plt.switch_backend('TkAgg')
 
-        # TODO: we still see 3 graph windows (one is empty) - maybe re-work it in a way that each window is an "instance"?
-        generate_graphs(subseries_list, [s.get_name() for s in series_list])
-        generate_graphs(scaled_series_list, [s.get_name() for s in series_list])
+        generate_graphs(pd_data)
 
         plt.show()
 
