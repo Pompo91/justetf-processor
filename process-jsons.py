@@ -215,18 +215,19 @@ if __name__ == "__main__":
         pct_change = abs_dframe.pct_change()
         generate_graphs(pct_change, title.generate("Percentage change"), min_datetime, max_datetime)
 
-        print("Correlation of percentage change:")
-        print(pct_change.corr())
-        print("----------------------------------------------------------------")
-
         print("Correlation of no-trend data:")
         print(no_trend_dframe.corr())
+        print("----------------------------------------------------------------")
+
+        print("Correlation of percentage change:")
+        print(pct_change.corr())
+
         
         plt.figure()
         plt.subplot(1, 2, 1)
-        generate_corr_heatmap(pct_change.corr(), title.generate("Correlation - percentage change"))
-        plt.subplot(1, 2, 2)
         generate_corr_heatmap(no_trend_dframe.corr(), title.generate("Correlation - no-trend"))
+        plt.subplot(1, 2, 2)
+        generate_corr_heatmap(pct_change.corr(), title.generate("Correlation - percentage change"))
         plt.tight_layout()
         plt.show(block = False)
 
