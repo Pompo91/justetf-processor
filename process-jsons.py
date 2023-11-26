@@ -5,6 +5,7 @@ from dateutil.relativedelta import relativedelta
 import os
 
 import matplotlib.pyplot as plt
+import seaborn as sns
 import pandas as pd
 import numpy as np
 
@@ -72,6 +73,18 @@ class Series:
 
         return [((100 + p["value"]["raw"]) / (100 + first_val) - 1) * 100 for p in self._data[first_idx:last_idx + 1]]
 
+class TitleGenerator:
+    _timerange_str: str
+
+    def __init__(self, args, min_datetime: datetime, max_datetime: datetime):
+        if args.months:
+            self._timerange_str = "{} months".format(args.months)
+        else:
+            self._timerange_str = "{}/{} - {}/{}".format(min_datetime.month, min_datetime.year, max_datetime.month, max_datetime.year)
+
+    def generate(self, main_title: str) -> str:
+        return "{} ({})".format(main_title, self._timerange_str)
+
 def generate_graph_ticks(start_date: datetime.datetime, stop_date: datetime.datetime) -> [list, list]:
     idx_list = list()
     date_str_list = list()
@@ -111,6 +124,15 @@ def generate_graphs(data: pd.DataFrame, title: str, min_datetime: datetime, max_
 
     plt.grid()
     plt.show(block = False)
+
+def generate_corr_heatmap(corr_matrix: pd.DataFrame, title: str):
+    # plt.figure()
+    mask = np.triu(np.ones_like(corr_matrix, dtype = bool))
+    # Add diverging colormap from red to blue
+    cmap = sns.diverging_palette(250, 10, as_cmap=True)
+    sns.heatmap(corr_matrix, mask = mask, vmin = -1, vmax = 1, annot = True, cmap = cmap)
+    plt.title(title)
+    # plt.show(block = False)
 
 def get_linear_trend_coeffs(series: list) -> [float, float]:
     dummy_time_values = np.arange(len(series))
@@ -183,13 +205,15 @@ if __name__ == "__main__":
         # Switch to a backend that supports interactive plotting
         plt.switch_backend('TkAgg')
 
-        generate_graphs(percent_dframe, "Total performance [%]", min_datetime, max_datetime)
+        title = TitleGenerator(args, min_datetime, max_datetime)
+
+        generate_graphs(percent_dframe, title.generate("Total performance [%]"), min_datetime, max_datetime)
 
         no_trend_dframe = remove_trends(percent_dframe)
-        generate_graphs(no_trend_dframe, "Trend eliminated", min_datetime, max_datetime)
+        generate_graphs(no_trend_dframe, title.generate("Trend eliminated"), min_datetime, max_datetime)
 
         pct_change = abs_dframe.pct_change()
-        generate_graphs(pct_change, "Percentage change", min_datetime, max_datetime)
+        generate_graphs(pct_change, title.generate("Percentage change"), min_datetime, max_datetime)
 
         print("Correlation of percentage change:")
         print(pct_change.corr())
@@ -197,6 +221,13 @@ if __name__ == "__main__":
 
         print("Correlation of no-trend data:")
         print(no_trend_dframe.corr())
+        
+        plt.figure()
+        plt.subplot(1, 2, 1)
+        generate_corr_heatmap(pct_change.corr(), title.generate("Correlation - percentage change"))
+        plt.subplot(1, 2, 2)
+        generate_corr_heatmap(no_trend_dframe.corr(), title.generate("Correlation - no-trend"))
+        plt.show(block = False)
 
         input("Press Enter to terminate...")
         
