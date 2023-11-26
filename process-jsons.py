@@ -5,6 +5,7 @@ import os
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 
 class Series:
     _name: str
@@ -110,6 +111,24 @@ def generate_graphs(data: pd.DataFrame, min_datetime, max_datetime):
 
     plt.grid()
     plt.show(block = False)
+
+def get_linear_trend_coeffs(series: list) -> [float, float]:
+    dummy_time_values = np.arange(len(series))
+    # The "1" stands for "polynomial of 1st degree", i.e. linear
+    return np.polyfit(dummy_time_values, series, 1)
+
+def remove_trends(data: pd.DataFrame) -> pd.DataFrame:
+    tmp_dict = dict()
+
+    for key in data.keys():
+        series = list(data[key])
+        tmp_dict[key] = list()
+        slope, offset = get_linear_trend_coeffs(series)
+        for i, p in enumerate(series):
+            tmp_dict[key].append(p - (slope * i + offset))
+    
+    return pd.DataFrame(tmp_dict)
+        
         
 if __name__ == "__main__":
     arg_parser = arg_parser = argparse.ArgumentParser(description = "Process JSONSs downloaded from JustETF")
@@ -157,8 +176,18 @@ if __name__ == "__main__":
 
         generate_graphs(percent_dframe, min_datetime, max_datetime)
 
+        no_trend_dframe = remove_trends(percent_dframe)
+        generate_graphs(no_trend_dframe, min_datetime, max_datetime)
+
         pct_change = abs_dframe.pct_change()
         generate_graphs(pct_change, min_datetime, max_datetime)
+
+        print("Correlation of percentage change:")
+        print(pct_change.corr())
+        print("----------------------------------------------------------------")
+
+        print("Correlation of no-trend data:")
+        print(no_trend_dframe.corr())
 
         input("Press Enter to terminate...")
         
