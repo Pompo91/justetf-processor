@@ -97,15 +97,14 @@ def generate_graph_ticks(start_date: datetime.datetime, stop_date: datetime.date
     
     return [idx_list, date_str_list]
 
-def generate_graphs(data: pd.DataFrame, min_datetime, max_datetime):
+def generate_graphs(data: pd.DataFrame, title: str, min_datetime: datetime, max_datetime: datetime):
     # The pandas plot() function is a wrapper around the matplotlib plt.plot()
     data.plot()
     # to modify the plot, just call the method of plt
 
     # Set plot title and labels
-    plt.title('Performance comparison')
+    plt.title(title)
     plt.xlabel('date')
-    plt.ylabel('performance [%]')
 
     idx_list, tick_list = generate_graph_ticks(min_datetime, max_datetime)
     plt.xticks(idx_list, tick_list, rotation = 0)
@@ -184,13 +183,13 @@ if __name__ == "__main__":
         # Switch to a backend that supports interactive plotting
         plt.switch_backend('TkAgg')
 
-        generate_graphs(percent_dframe, min_datetime, max_datetime)
+        generate_graphs(percent_dframe, "Total performance [%]", min_datetime, max_datetime)
 
         no_trend_dframe = remove_trends(percent_dframe)
-        generate_graphs(no_trend_dframe, min_datetime, max_datetime)
+        generate_graphs(no_trend_dframe, "Trend eliminated", min_datetime, max_datetime)
 
         pct_change = abs_dframe.pct_change()
-        generate_graphs(pct_change, min_datetime, max_datetime)
+        generate_graphs(pct_change, "Percentage change", min_datetime, max_datetime)
 
         print("Correlation of percentage change:")
         print(pct_change.corr())
