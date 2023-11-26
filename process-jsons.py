@@ -1,6 +1,7 @@
 import json
 import argparse
 import datetime
+from dateutil.relativedelta import relativedelta
 import os
 
 import matplotlib.pyplot as plt
@@ -133,7 +134,7 @@ def remove_trends(data: pd.DataFrame) -> pd.DataFrame:
 if __name__ == "__main__":
     arg_parser = arg_parser = argparse.ArgumentParser(description = "Process JSONSs downloaded from JustETF")
     arg_parser.add_argument("-i", "--input-json-dir", type = str, required = True, help = "Path to directory containing the JSON files")
-    # arg_parser.add_argument("-o", "--output-csv", type = str, required = False, help = "Path to the output CSV file")
+    arg_parser.add_argument("-m", "--months", type = int, required = False, help = "Only compare the last -m months")
 
     args = arg_parser.parse_args()
 
@@ -156,6 +157,15 @@ if __name__ == "__main__":
         for s in series_list[1:]:
             min_datetime = max(min_datetime, s.get_first_datetime())
             max_datetime = min(max_datetime, s.get_last_datetime())
+        
+        if args.months:
+            min_datetime = max_datetime - relativedelta(months = +args.months)
+            for s in series_list:
+                if s.get_first_datetime() > min_datetime:
+                    print("Dropping series {} - starts at {}, but minimum date is {}.".format(s.get_name(), s.get_first_datetime(), min_datetime))
+                    series_list.remove(s)
+            if len(series_list) < 2:
+                raise Exception("Only {} series remained - not enough data to compare.".format(len(series_list)))
         
         print("Min date: {}, max date: {}, days: {}".format(min_datetime, max_datetime, int((max_datetime - min_datetime).days) + 1))
 
