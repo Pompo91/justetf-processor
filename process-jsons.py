@@ -227,6 +227,7 @@ if __name__ == "__main__":
         generate_corr_heatmap(pct_change.corr(), title.generate("Correlation - percentage change"))
         plt.subplot(1, 2, 2)
         generate_corr_heatmap(no_trend_dframe.corr(), title.generate("Correlation - no-trend"))
+        plt.tight_layout()
         plt.show(block = False)
 
         input("Press Enter to terminate...")
