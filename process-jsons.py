@@ -95,7 +95,7 @@ def generate_graph_ticks(start_date: datetime.datetime, stop_date: datetime.date
     
     return [idx_list, date_str_list]
 
-def generate_graphs(data: pd.DataFrame):
+def generate_graphs(data: pd.DataFrame, min_datetime, max_datetime):
     # The pandas plot() function is a wrapper around the matplotlib plt.plot()
     data.plot()
     # to modify the plot, just call the method of plt
@@ -109,6 +109,7 @@ def generate_graphs(data: pd.DataFrame):
     plt.xticks(idx_list, tick_list, rotation = 0)
 
     plt.grid()
+    plt.show(block = False)
         
 if __name__ == "__main__":
     arg_parser = arg_parser = argparse.ArgumentParser(description = "Process JSONSs downloaded from JustETF")
@@ -139,25 +140,29 @@ if __name__ == "__main__":
         
         print("Min date: {}, max date: {}, days: {}".format(min_datetime, max_datetime, int((max_datetime - min_datetime).days) + 1))
 
-        subseries_list = list()
-        dataframe_input_dict = dict()
+        percent_dict = dict()
+        abs_dict = dict()
 
         for s in series_list:
             subseries = s.get_data_in_date_window(min_datetime, max_datetime)
-            subseries_list.append(subseries)
-            dataframe_input_dict[s.get_name()] = subseries
+            percent_dict[s.get_name()] = subseries
+            # for calculation of percentage change, we need absolute values
+            abs_dict[s.get_name()] = [(p + 100) for p in subseries]
         
-        pd_data = pd.DataFrame(dataframe_input_dict)
+        percent_dframe = pd.DataFrame(percent_dict)
+        abs_dframe = pd.DataFrame(abs_dict)
         
         # Switch to a backend that supports interactive plotting
         plt.switch_backend('TkAgg')
 
-        generate_graphs(pd_data)
+        generate_graphs(percent_dframe, min_datetime, max_datetime)
 
-        plt.show()
+        pct_change = abs_dframe.pct_change()
+        generate_graphs(pct_change, min_datetime, max_datetime)
 
         input("Press Enter to terminate...")
         
 
     except Exception as exc:
         print("EXCEPTION OCCURRED: {}".format(exc))
+
