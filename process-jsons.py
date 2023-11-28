@@ -139,6 +139,7 @@ def get_linear_trend_coeffs(series: list) -> [float, float]:
     # The "1" stands for "polynomial of 1st degree", i.e. linear
     return np.polyfit(dummy_time_values, series, 1)
 
+# TODO: not used right now, but keeping it for now...
 def remove_trends(data: pd.DataFrame) -> pd.DataFrame:
     tmp_dict = dict()
 
@@ -190,45 +191,49 @@ if __name__ == "__main__":
         
         print("Min date: {}, max date: {}, days: {}".format(min_datetime, max_datetime, int((max_datetime - min_datetime).days) + 1))
 
-        percent_dict = dict()
+        performance_dict = dict()
         abs_dict = dict()
 
         for s in series_list:
             subseries = s.get_data_in_date_window(min_datetime, max_datetime)
-            percent_dict[s.get_name()] = subseries
+            # performance is the original graph in %, starting at 0
+            performance_dict[s.get_name()] = subseries
             # for calculation of percentage change, we need absolute values
             abs_dict[s.get_name()] = [(p + 100) for p in subseries]
         
-        percent_dframe = pd.DataFrame(percent_dict)
+        FILTER_WINDOW = 14
+
+        performance_dframe = pd.DataFrame(performance_dict)
+        filtered_performance = performance_dframe.ewm(span = FILTER_WINDOW).mean()
+
         abs_dframe = pd.DataFrame(abs_dict)
+        raw_pct_change = abs_dframe.pct_change()
+
+        filtered_abs = abs_dframe.ewm(span = FILTER_WINDOW).mean()
+        filtered_pct_change = filtered_abs.pct_change()
         
         # Switch to a backend that supports interactive plotting
         plt.switch_backend('TkAgg')
 
         title = TitleGenerator(args, min_datetime, max_datetime)
 
-        generate_graphs(percent_dframe, title.generate("Total performance [%]"), min_datetime, max_datetime)
+        generate_graphs(performance_dframe, title.generate("Total performance [%]"), min_datetime, max_datetime)
+        generate_graphs(filtered_performance, title.generate("Filtered PERECENT, NOT ABS"), min_datetime, max_datetime)
+        generate_graphs(filtered_pct_change, title.generate("Filtered pct change"), min_datetime, max_datetime)
 
-        no_trend_dframe = remove_trends(percent_dframe)
-        generate_graphs(no_trend_dframe, title.generate("Trend eliminated"), min_datetime, max_datetime)
-
-        pct_change = abs_dframe.pct_change()
-        generate_graphs(pct_change, title.generate("Percentage change"), min_datetime, max_datetime)
-
-        print("Correlation of no-trend data:")
-        print(no_trend_dframe.corr())
-        print("----------------------------------------------------------------")
-
-        print("Correlation of percentage change:")
-        print(pct_change.corr())
-
-        
         plt.figure()
-        plt.subplot(1, 2, 1)
-        generate_corr_heatmap(no_trend_dframe.corr(), title.generate("Correlation - no-trend"))
-        plt.subplot(1, 2, 2)
-        generate_corr_heatmap(pct_change.corr(), title.generate("Correlation - percentage change"))
+        plt.subplots_adjust(wspace = 0.2, bottom = 0.22)
         plt.tight_layout()
+
+        plt.subplot(1, 2, 1)
+        generate_corr_heatmap(filtered_pct_change.corr(), title.generate("Correlation - filtered pct change"))
+        plt.subplot(1, 2, 2)
+        # TODO: maybe we don't want really "raw", but just a shorter filter window?
+        generate_corr_heatmap(raw_pct_change.corr(), title.generate("Correlation - \"raw\" pct change"))
+        
+        # NOTE: after introducing the wspace, if we call it here again, the wspace is not set anymore...
+        # now we use the fixed bottom instead - maybe we could calculate the required value based on the longest name...
+        # plt.tight_layout()
         plt.show(block = False)
 
         input("Press Enter to terminate...")
