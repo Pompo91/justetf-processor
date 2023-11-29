@@ -201,7 +201,7 @@ if __name__ == "__main__":
             # for calculation of percentage change, we need absolute values
             abs_dict[s.get_name()] = [(p + 100) for p in subseries]
         
-        FILTER_WINDOW = 14
+        FILTER_WINDOW = 7
 
         performance_dframe = pd.DataFrame(performance_dict)
         filtered_performance = performance_dframe.ewm(span = FILTER_WINDOW).mean()
@@ -210,7 +210,10 @@ if __name__ == "__main__":
         raw_pct_change = abs_dframe.pct_change()
 
         filtered_abs = abs_dframe.ewm(span = FILTER_WINDOW).mean()
-        filtered_pct_change = filtered_abs.pct_change()
+        # filter the pct change as well - visually, the graphs seem to make more sense,
+        # it should be less sensitive to small day-to-day differences.
+        # The values in the correlation heatmap slightly increased (by 0.01 to 0.03)
+        filtered_pct_change = filtered_abs.pct_change().ewm(span = FILTER_WINDOW).mean()
         
         # Switch to a backend that supports interactive plotting
         plt.switch_backend('TkAgg')
