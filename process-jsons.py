@@ -19,7 +19,7 @@ class Series:
             with open(json_path, "r") as f:
                 whole_json = json.load(f)
                 self._data = whole_json["series"]
-        except:
+        except Exception as exc:
             print("class series: exception occurred: {}".format(exc))
         
         self.__validate()
