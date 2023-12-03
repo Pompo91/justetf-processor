@@ -12,8 +12,14 @@ def filter_history(full_history: pd.DataFrame) -> pd.DataFrame:
         d_utc = np.datetime64(d, 's')     # Convert to seconds precision - also converts the timezone?
         utc_dates.append(d_utc.astype('datetime64[D]'))
 
-    ret = pd.DataFrame({"datetime": pd.DatetimeIndex(utc_dates), "values": full_history["Close"].values})
-    return ret
+    data = pd.DataFrame(data = {"values": full_history["Close"].values}, index = pd.DatetimeIndex(utc_dates))
+    
+    # BIG TODO: filling in the missing days - I think we don't want that for correlation measurements, do we?
+    full_date_range = pd.date_range(start = utc_dates[0], end = utc_dates[-1])
+    data = data.reindex(full_date_range)
+    data.ffill(inplace = True)
+
+    return data
 
 class YfinanceData:
     _name: str
@@ -36,15 +42,15 @@ class YfinanceData:
             history = self._data
             print("Currencies match, no need for conversion.")
         
-        history = fill_empty_days(history)
+        # history = fill_empty_days(history)
         history = convert_to_percentage(history)
 
         out_json = dict()
         out_json["series"] = list()
 
-        for _, row in history.iterrows():
+        for index, row in history.iterrows():
             point = dict()
-            point["date"] = pd.to_datetime(row["datetime"]).strftime("%Y-%m-%d")
+            point["date"] = pd.to_datetime(index).strftime("%Y-%m-%d")
             point["value"] = dict()
             point["value"]["raw"] = row["values"]
             out_json["series"].append(point)
@@ -56,16 +62,18 @@ class YfinanceData:
 
 def multiply_histories(history1: pd.DataFrame, history2: pd.DataFrame) -> pd.DataFrame:
     # TODO: modify the dates, so they only contain days, no smaller values
-    merged_df = pd.merge(history1, history2, on = "datetime", suffixes = ("_h1", "_h2"))
+    merged_df = pd.merge(history1, history2, left_index = True, right_index = True, suffixes = ("_h1", "_h2"))
     merged_df["values"] = merged_df["values_h1"] * merged_df["values_h2"]
-    return merged_df[["datetime", "values"]]
+    return merged_df[["values"]]
 
+"""
 def fill_empty_days(data: pd.DataFrame) -> pd.DataFrame:
     full_date_range = pd.date_range(start = data["datetime"].iloc[0], end = data["datetime"].iloc[-1])
     data.set_index("datetime")
     data.reindex(full_date_range)
     data["values"] = data["values"].fillna(method = "ffill")
     return data
+"""
 
 def convert_to_percentage(data: pd.DataFrame):
     base = data["values"].iat[0]
