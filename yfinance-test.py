@@ -20,6 +20,11 @@ def filter_history(full_history: pd.DataFrame) -> pd.DataFrame:
     data = pd.DataFrame(data = {"values": full_history["Close"].values}, index = pd.DatetimeIndex(utc_dates))
     
     # BIG TODO: filling in the missing days - I think we don't want that for correlation measurements, do we?
+    # Maybe it's better idea to keep it? As the data may come from different stock exchanges in different time
+    # zones etc., so after conversion to UTC, for one exchange the data are on Monday-Friday, while for another one
+    # it would be Tuesday-Saturday.
+    # Also, what does the filling of weekends with the latest value do? It will probably increase the correlation,
+    # which is not as bad as if it would be decreasing it...
     full_date_range = pd.date_range(start = utc_dates[0], end = utc_dates[-1])
     data = data.reindex(full_date_range)
     data.ffill(inplace = True)
