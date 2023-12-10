@@ -124,7 +124,7 @@ forex_pair_list = list()
 for forex_p in [("EUR=X", "USD"), ("GBPEUR=X", "GBP")]:
     forex_pair_list.append(ForexPair(forex_p[0], forex_p[1]))
 
-for ticker in [("SP500", "SPY"), ("amundi-semi", "CHIP.PA"), ("msci-health", "LYPE.DE"), ("msci-india", "LYMD.DE"), ("euro-estate", "XDER.L")]:
+for ticker in [("SP500", "SPY"), ("amundi-semi", "CHIP.PA"), ("msci-health", "LYPE.DE"), ("msci-india", "LYMD.DE"), ("euro-estate", "XDER.L"), ("vaneck-semi", "SMH"), ("msci-consumer", "XDWS.L"), ("msci-utilities", "XDWU.DE"), ("msci-energy", "XDW0.L")]:
     data = YfinanceData(ticker[1])
     data.generate_json("EUR", forex_pair_list, ticker[0])
 
