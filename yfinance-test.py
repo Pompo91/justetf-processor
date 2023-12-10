@@ -141,7 +141,7 @@ def fill_empty_days_relative(values: list, dates: pd.DatetimeIndex) -> list:
 
 currency = yf.Ticker("EUR=X")
 
-for ticker in [("SP500", "SPY"), ("amundi-semi", "CHIP.SW"), ("msci-health", "LYPE.DE"), ("msci-india", "LYMD.DE"), ("euro-estate", "XDER.L")]:
+for ticker in [("SP500", "SPY"), ("amundi-semi", "CHIP.PA"), ("msci-health", "LYPE.DE"), ("msci-india", "LYMD.DE"), ("euro-estate", "XDER.L")]:
     data = YfinanceData(ticker[1])
     data.generate_json("EUR", currency, ticker[0])
     # if ticker.get_info().cur
