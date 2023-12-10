@@ -8,8 +8,13 @@ def filter_history(full_history: pd.DataFrame) -> pd.DataFrame:
 
     # convert to UTC timezone and round it to hours
     utc_dates = list()
+    secs_in_12hours = 12 * 60 * 60
+    secs_in_24hours = 2 * secs_in_12hours
     for d in dates:
         d_utc = np.datetime64(d, 's')     # Convert to seconds precision - also converts the timezone?
+        if (d_utc.astype(np.int64) % secs_in_24hours > secs_in_12hours):
+            # do the rounding
+            d_utc += np.timedelta64(secs_in_12hours, 's')
         utc_dates.append(d_utc.astype('datetime64[D]'))
 
     data = pd.DataFrame(data = {"values": full_history["Close"].values}, index = pd.DatetimeIndex(utc_dates))
