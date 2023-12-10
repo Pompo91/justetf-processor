@@ -77,78 +77,15 @@ def multiply_histories(history1: pd.DataFrame, history2: pd.DataFrame) -> pd.Dat
     merged_df["values"] = merged_df["values_h1"] * merged_df["values_h2"]
     return merged_df[["values"]]
 
-"""
-def fill_empty_days(data: pd.DataFrame) -> pd.DataFrame:
-    full_date_range = pd.date_range(start = data["datetime"].iloc[0], end = data["datetime"].iloc[-1])
-    data.set_index("datetime")
-    data.reindex(full_date_range)
-    data["values"] = data["values"].fillna(method = "ffill")
-    return data
-"""
-
 def convert_to_percentage(data: pd.DataFrame):
     base = data["values"].iat[0]
     data["values"] = (data["values"] / base - 1) * 100
     return data
-
-"""
-def get_start_stop_idx(dates: pd.DatetimeIndex, min_date: np.datetime64, max_date: np.datetime64) -> (int, int):
-    start_idx = None
-    stop_idx = None
-    for i, d in enumerate(dates):
-        if d == min_date:
-            start_idx = i
-            break
-    
-    for i, d in reversed(list(enumerate(dates))):
-        if d == max_date:
-            stop_idx = len(dates) - i
-            break
-    
-    assert (start_idx != None and stop_idx != None)
-    return (start_idx, stop_idx)
-"""
-
-"""
-# return list of dicts
-def fill_empty_days_relative(values: list, dates: pd.DatetimeIndex) -> list:
-    day_dates = np.array(dates, dtype = 'datetime64[D]')
-    assert(len(values) == len(day_dates))
-
-    out_values = list([values[0]])
-    # these are np.datetime - will be converted to strings at the end
-    out_dates = list([day_dates[0]])
-
-    for i in range(len(values) - 1):
-        while out_dates[-1] + np.timedelta64(1, 'D') != day_dates[i]:
-            out_dates.append(out_dates[-1] + np.timedelta64(1, 'D'))
-            # dirty, but efficient - do the conversion to performance in % here
-            out_values.append((out_values[-1] - out_values[0]) / out_values[0] * 100)
-
-    out_dict_list = list()
-
-    for i in range(len(out_dates)):
-        p = dict()
-        p["date"] = pd.to_datetime(out_dates[i]).strftime("%Y-%m-%d")
-        p["value"] = dict()
-        p["value"]["raw"] = out_values[i]
-        out_dict_list.append(p)
-    
-    return out_dict_list
-"""
-
-
 
 currency = yf.Ticker("EUR=X")
 
 for ticker in [("SP500", "SPY"), ("amundi-semi", "CHIP.PA"), ("msci-health", "LYPE.DE"), ("msci-india", "LYMD.DE"), ("euro-estate", "XDER.L")]:
     data = YfinanceData(ticker[1])
     data.generate_json("EUR", currency, ticker[0])
-    # if ticker.get_info().cur
-    # ticker.get_info
-    # ticker.to_pickle("yfinance-pickles/{}-ticker.pkl")
-    # history.to_json("yfinance-jsons/{}.json".format(t[0]))
-    b = 1
-#usd_eur = yf.Ticker("EUR=X")
 
 a = 1
