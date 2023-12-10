@@ -40,7 +40,7 @@ class YfinanceData:
     _currency: str
 
     def __init__(self, ticker_name: str):
-        self.name = ticker_name
+        self._name = ticker_name
         self._ticker = yf.Ticker(ticker_name)
         self._data = filter_history(self._ticker.history(period = "max"))
         self._currency = self._ticker.get_info()["currency"]
