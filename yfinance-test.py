@@ -36,19 +36,32 @@ class YfinanceData:
     _name: str
     _ticker: yf.Ticker
     _data: pd.DataFrame
-    _history_close: pd.DataFrame
     _currency: str
 
     def __init__(self, ticker_name: str):
         self._name = ticker_name
         self._ticker = yf.Ticker(ticker_name)
         self._data = filter_history(self._ticker.history(period = "max"))
-        self._currency = self._ticker.get_info()["currency"]
+        self._currency = self._ticker.get_info()["currency"].upper()
     
-    def generate_json(self, tgt_currency: str, tgt_currency_ticker: yf.Ticker, json_path: str):
+    def get_currency(self) -> str:
+        return self._currency
+
+    def get_data(self) -> pd.DataFrame:
+        return self._data        
+    
+    def generate_json(self, tgt_currency: str, forex_pairs: list, json_path: str):
         if self._currency != tgt_currency:
-            currency_history = filter_history(tgt_currency_ticker.history(period = "max"))
-            history = multiply_histories(self._data, currency_history)
+            forex_p = None
+            for p in forex_pairs:
+                if p.get_conv_currency() == self._currency:
+                    assert(p.get_currency() == tgt_currency)
+                    forex_p = p
+                    break
+            if not forex_p:
+                raise Exception("Forex pair for target currency {} not found.".format(tgt_currency))
+            
+            history = forex_p.convert_to_eur(self)
         else:
             history = self._data
             print("Currencies match, no need for conversion.")
@@ -68,8 +81,33 @@ class YfinanceData:
         
         with open("converted-yfinance/{}.json".format(json_path), "w") as f:
             f.write(json.dumps(out_json, indent = 2))
-            
 
+class ForexPair:
+    # Class for holding the data used for conversion to EUR
+    _name: str
+    _ticker: yf.Ticker
+    _data: pd.DataFrame
+    _currency: str
+    _conv_currency: str
+
+    def __init__(self, ticker_name: str, conv_currency: str):
+        self._name = ticker_name
+        self._ticker = yf.Ticker(ticker_name)
+        self._data = filter_history(self._ticker.history(period = "max"))
+        self._currency = self._ticker.get_info()["currency"].upper()
+        self._conv_currency = conv_currency.upper()
+    
+    def get_currency(self) -> str:
+        return self._currency
+
+    def get_conv_currency(self) -> str:
+        assert(self._currency == "EUR")
+        return self._conv_currency
+
+    def convert_to_eur(self, data: YfinanceData) -> pd.DataFrame:
+        if (data.get_currency() != self._conv_currency):
+            raise Exception("Currency missmatch!")
+        return multiply_histories(data.get_data(), self._data)
 
 def multiply_histories(history1: pd.DataFrame, history2: pd.DataFrame) -> pd.DataFrame:
     # TODO: modify the dates, so they only contain days, no smaller values
@@ -82,10 +120,12 @@ def convert_to_percentage(data: pd.DataFrame):
     data["values"] = (data["values"] / base - 1) * 100
     return data
 
-currency = yf.Ticker("EUR=X")
+forex_pair_list = list()
+for forex_p in [("EUR=X", "USD"), ("GBPEUR=X", "GBP")]:
+    forex_pair_list.append(ForexPair(forex_p[0], forex_p[1]))
 
 for ticker in [("SP500", "SPY"), ("amundi-semi", "CHIP.PA"), ("msci-health", "LYPE.DE"), ("msci-india", "LYMD.DE"), ("euro-estate", "XDER.L")]:
     data = YfinanceData(ticker[1])
-    data.generate_json("EUR", currency, ticker[0])
+    data.generate_json("EUR", forex_pair_list, ticker[0])
 
 a = 1
